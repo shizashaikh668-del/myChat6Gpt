@@ -1,35 +1,30 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 from pydantic import BaseModel
 import os
-import openai
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from openai import OpenAI
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Get API key from environment variable
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-class ChatReq(BaseModel):
-    message: str
+class Message(BaseModel):
+    text: str
+
+@app.get("/")
+def home():
+    return {"message": "Chat6GPT is running successfully!"}
 
 @app.post("/chat")
-async def chat(req: ChatReq):
+def chat(msg: Message):
     try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role":"system","content":"You are Chat6GPT, a friendly multilingual assistant."},
-                {"role":"user","content":req.message}
-            ]
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": msg.text}]
         )
-        answer = resp["choices"][0]["message"]["content"]
-        return {"reply": answer}
+
+        reply = response.choices[0].message.content
+        return {"answer": reply}
+
     except Exception as e:
         return {"error": str(e)}
