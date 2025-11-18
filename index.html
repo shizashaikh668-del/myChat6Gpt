@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chat6GPT (test)</title>
+  <style>body{font-family:sans-serif;padding:10px}#log{height:55vh;overflow:auto;border:1px solid #ddd;padding:8px}.me{color:blue}.bot{color:green}#msg{width:calc(100% - 90px)}</style>
+</head>
+<body>
+  <h3>Chat6GPT (test)</h3>
+  <div id="log"></div>
+  <input id="msg" placeholder="Type message..." />
+  <button id="send">Send</button>
+
+<script>
+const API = "RENDER_URL_HERE"; // replace after deploy e.g. https://mychat6gpt.onrender.com
+const log = document.getElementById('log');
+document.getElementById('send').onclick = async () => {
+  const m = document.getElementById('msg').value.trim();
+  if(!m) return;
+  append("You: " + m, "me");
+  append("Bot: ...", "bot-temp");
+  try {
+    const r = await fetch(API + "/chat", {
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({message: m})
+    });
+    const j = await r.json();
+    document.querySelector('.bot-temp')?.remove();
+    append("Bot: " + (j.reply || j.error || "No response"), "bot");
+  } catch(e){
+    document.querySelector('.bot-temp')?.remove();
+    append("Bot: Error connecting", "bot");
+  }
+};
+
+function append(t, cls){
+  const d = document.createElement('div'); d.textContent = t; d.className = cls; log.appendChild(d); log.scrollTop = log.scrollHeight;
+}
+</script>
+</body>
+</html>
