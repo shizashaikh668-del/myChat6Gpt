@@ -1,30 +1,47 @@
+# main.py
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-import os
-from openai import OpenAI
+import openai
+from fastapi.middleware.cors import CORSMiddleware
+
+openai.api_key = os.getenv("OPENAI_API_KEY")  # set this in Render env vars
 
 app = FastAPI()
 
-# Get API key from environment variable
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Allow requests from your GitHub Pages origin and Render domain (adjust if needed)
+origins = [
+    "https://shizashaikh668-del.github.io",
+    "https://mychat6gpt.onrender.com",
+    "http://localhost:3000",
+]
 
-class Message(BaseModel):
-    text: str
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,    # restrict to your domains for safety
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class ChatRequest(BaseModel):
+    prompt: str
 
 @app.get("/")
-def home():
-    return {"message": "Chat6GPT is running successfully!"}
+async def root():
+    return {"message": "Chat6GPT backend: running"}
 
 @app.post("/chat")
-def chat(msg: Message):
+async def chat(req: ChatRequest):
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": msg.text}]
+        # Using ChatCompletion (gpt-3.5-turbo) - reliable choice
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role":"user","content": req.prompt}],
+            max_tokens=500,
+            temperature=0.7,
         )
-
-        reply = response.choices[0].message.content
-        return {"answer": reply}
-
+        text = resp.choices[0].message.get("content", "").strip()
+        return {"reply": text}
     except Exception as e:
         return {"error": str(e)}
