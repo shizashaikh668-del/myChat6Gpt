@@ -1,47 +1,46 @@
-# main.py
-import os
-from fastapi import FastAPI
-from pydantic import BaseModel
-import openai
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-
-openai.api_key = os.getenv("OPENAI_API_KEY")  # set this in Render env vars
+import os
+import openai
 
 app = FastAPI()
 
-# Allow requests from your GitHub Pages origin and Render domain (adjust if needed)
-origins = [
-    "https://shizashaikh668-del.github.io",
-    "https://mychat6gpt.onrender.com",
-    "http://localhost:3000",
-]
-
+# CORS Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,    # restrict to your domains for safety
+    allow_origins=[
+        "https://shizashaikh668-del.github.io",
+        "https://mychat6gpt.onrender.com",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class ChatRequest(BaseModel):
-    prompt: str
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.get("/")
-async def root():
-    return {"message": "Chat6GPT backend: running"}
+def home():
+    return {"message": "ChatGPT backend is running!"}
 
+# 🚀 Chat POST API
 @app.post("/chat")
-async def chat(req: ChatRequest):
+async def chat(request: Request):
+    data = await request.json()
+    user_msg = data.get("message")
+
     try:
-        # Using ChatCompletion (gpt-3.5-turbo) - reliable choice
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role":"user","content": req.prompt}],
-            max_tokens=500,
-            temperature=0.7,
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant."},
+                {"role": "user", "content": user_msg}
+            ]
         )
-        text = resp.choices[0].message.get("content", "").strip()
-        return {"reply": text}
+
+        bot_reply = response["choices"][0]["message"]["content"]
+        return {"reply": bot_reply}
+
     except Exception as e:
         return {"error": str(e)}
